@@ -1,0 +1,172 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include <QTextCharFormat>
+#include <QFont>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QTextStream>
+#include <QIcon>
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+//    textEdit = new QTextEdit(this);
+    setCentralWidget(ui->textEdit);
+
+    toolbar = addToolBar("Main Toolbar");
+
+    boldAction = new QAction(QIcon(":/images/bold.png"), "Bold", this);
+    boldAction->setCheckable(true);
+    connect(boldAction, &QAction::triggered, this, &MainWindow::toggleBold);
+    toolbar->addAction(boldAction);
+
+    superscriptAction = new QAction("Superscript", this);
+    superscriptAction->setCheckable(true);
+    connect(superscriptAction, &QAction::triggered, this, &MainWindow::superscript);
+    toolbar->addAction(superscriptAction);
+
+    subscriptAction = new QAction("Subscript", this);
+    subscriptAction->setCheckable(true);
+    connect(subscriptAction, &QAction::triggered, this, &MainWindow::subscript);
+    toolbar->addAction(subscriptAction);
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+void MainWindow::toggleBold()
+{
+    QTextCharFormat format;
+    format.setFontWeight(boldAction->isChecked() ? QFont::Bold : QFont::Normal);
+    ui->textEdit->mergeCurrentCharFormat(format);
+}
+
+void MainWindow::superscript()
+{
+    if (superscriptAction->isChecked()) {
+        subscriptAction->setChecked(false);  // Uncheck subscript if superscript is checked
+    }
+
+    QTextCharFormat format;
+    if (superscriptAction->isChecked()) {
+        format.setVerticalAlignment(QTextCharFormat::AlignSuperScript);
+    } else {
+        format.setVerticalAlignment(QTextCharFormat::AlignNormal);
+    }
+    ui->textEdit->mergeCurrentCharFormat(format);
+}
+
+void MainWindow::subscript()
+{
+    if (subscriptAction->isChecked()) {
+       superscriptAction->setChecked(false);  // Uncheck superscript if subscript is checked
+   }
+
+   QTextCharFormat format;
+   if (subscriptAction->isChecked()) {
+       format.setVerticalAlignment(QTextCharFormat::AlignSubScript);
+   } else {
+       format.setVerticalAlignment(QTextCharFormat::AlignNormal);
+   }
+   ui->textEdit->mergeCurrentCharFormat(format);
+}
+
+void MainWindow::on_actionCut_triggered()
+{
+    ui->textEdit->cut();
+}
+
+void MainWindow::on_actionCopy_triggered()
+{
+    ui->textEdit->copy();
+}
+
+void MainWindow::on_actionPaste_triggered()
+{
+    ui->textEdit->paste();
+}
+
+
+void MainWindow::on_actionNew_triggered()
+{
+    file_path = "";
+    ui->textEdit->setText("");
+}
+
+void MainWindow::on_actionOpen_triggered()
+{
+    QString file_name = QFileDialog::getOpenFileName(this, "Open file");
+    QFile file(file_name);
+    file_path = file_name;
+    if(!file.open(QFile::ReadOnly | QFile::Text)){
+        QMessageBox::warning(this,"..","file not open");
+        return;
+    }
+    QTextStream openFile(&file);
+    QString text = openFile.readAll();
+    ui->textEdit->setText(text);
+    file.close();
+}
+
+
+void MainWindow::on_actionSave_triggered()
+{
+    QFile file(file_path);
+    if(file.open(QFile::WriteOnly | QFile::Text)){
+        QTextStream out(&file);
+        QString text = ui->textEdit->toPlainText();
+        out << text;
+        file.close();
+    }
+    else{
+        QString file_name = QFileDialog::getSaveFileName(this,"Save file");
+        QFile file(file_name);
+        file_path = file_name;
+        if(!file.open(QFile::WriteOnly | QFile::Text)){
+//            QMessageBox::warning(this,"..","file not open");
+            return;
+        }
+        QTextStream saveAsFile(&file);
+        QString text = ui->textEdit->toPlainText();
+        saveAsFile << text;
+        file.flush();
+        file.close();
+    }
+}
+
+
+void MainWindow::on_actionSaveAs_triggered()
+{
+    QString file_name = QFileDialog::getSaveFileName(this,"Save file");
+    QFile file(file_name);
+    file_path = file_name;
+    if(!file.open(QFile::WriteOnly | QFile::Text)){
+//        QMessageBox::warning(this,"..","file not open");
+        return;
+    }
+    QTextStream saveAsFile(&file);
+    QString text = ui->textEdit->toPlainText();
+    saveAsFile << text;
+    file.flush();
+    file.close();
+}
+
+
+void MainWindow::on_actionUndo_triggered()
+{
+    ui->textEdit->undo();
+}
+
+
+void MainWindow::on_actionRedo_triggered()
+{
+    ui->textEdit->redo();
+}
+
